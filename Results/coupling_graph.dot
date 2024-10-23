@@ -1,0 +1,5 @@
+graph Couplage {
+  ClassA -- ClassB [label="1 / 4"];
+  ClassA -- ClassC [label="2 / 4"];
+  ClassB -- ClassC [label="1 / 4"];
+}
