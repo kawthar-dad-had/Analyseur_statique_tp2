@@ -276,8 +276,8 @@ public class SpoonCouplageAnalyse {
         resultsDir.mkdir();
 
         try {
-            Files.write(Paths.get("Results/coupling_graph.dot"), content.getBytes());
-            System.out.println("Fichier .dot créé : Results/coupling_graph.dot");
+            Files.write(Paths.get("Results/coupling_graph_spoon.dot"), content.getBytes());
+            System.out.println("Fichier .dot créé : Results/coupling_graph_spoon.dot");
         } catch (IOException e) {
             System.err.println("Erreur lors de l'écriture du fichier .dot : " + e.getMessage());
         }
@@ -286,10 +286,10 @@ public class SpoonCouplageAnalyse {
     public void generatePng() {
         try {
             ProcessBuilder pb = new ProcessBuilder("dot", "-Tpng", 
-                "Results/coupling_graph.dot", "-o", "Results/coupling_graph.png");
+                "Results/coupling_graph_spoon.dot", "-o", "Results/coupling_graph_spoon.png");
             Process process = pb.start();
             process.waitFor();
-            System.out.println("Fichier PNG créé : Results/coupling_graph.png");
+            System.out.println("Fichier PNG créé : Results/coupling_graph_spoon.png");
         } catch (IOException | InterruptedException e) {
             System.err.println("Erreur lors de la génération du fichier PNG : " + e.getMessage());
         }
@@ -302,9 +302,96 @@ public class SpoonCouplageAnalyse {
         System.out.print("Veuillez entrer la moyenne de couplage minimum (CP) : ");
         CP = scanner.nextDouble();
 
+        // Liste pour stocker les clusters
         List<Set<String>> clusters = initializeClusters();
-        performClustering(clusters);
-        printFinalClusters(clusters);
+        List<String> clusterNames = new ArrayList<>(); // Pour stocker les noms des clusters en fonction des classes regroupées
+
+        // Initialiser chaque classe comme un cluster avec son nom
+        for (String className : allClasses) {
+            clusterNames.add(className); // Initialement, chaque cluster porte le nom de la classe unique
+        }
+
+        StringBuilder dotContent = new StringBuilder("digraph HierarchicalClustering {\n");
+        dotContent.append("  rankdir=TB;\n"); // Disposition verticale pour un arbre hiérarchique
+        dotContent.append("  node [shape=plaintext];\n"); // Utiliser des nœuds simples sans forme spécifique
+
+        // Construction du graphe hiérarchique en ajoutant des clusters
+        int clusterIndex = 1; // Pour générer des identifiants uniques pour les nouveaux clusters
+        while (clusters.size() > MAX_MODULES) {
+            double maxCoupling = -1;
+            int bestClusterAIndex = -1;
+            int bestClusterBIndex = -1;
+
+            // Trouver les deux clusters les plus couplés
+            for (int i = 0; i < clusters.size(); i++) {
+                for (int j = i + 1; j < clusters.size(); j++) {
+                    double couplingMetric = calculateAverageCoupling(clusters.get(i), clusters.get(j));
+                    if (couplingMetric > maxCoupling) {
+                        maxCoupling = couplingMetric;
+                        bestClusterAIndex = i;
+                        bestClusterBIndex = j;
+                    }
+                }
+            }
+
+            // Si le couplage maximal est inférieur au seuil CP, on arrête le regroupement
+            if (maxCoupling < CP) {
+                break;
+            }
+
+            // Fusion des clusters
+            Set<String> bestClusterA = clusters.get(bestClusterAIndex);
+            Set<String> bestClusterB = clusters.get(bestClusterBIndex);
+
+            // Nouveau nom pour le cluster fusionné, basé sur les noms des classes dans les deux clusters
+            String newClusterName = "{" + clusterNames.get(bestClusterAIndex) + ", " + clusterNames.get(bestClusterBIndex) + "}";
+
+            // Ajouter la fusion au graphe
+            dotContent.append("  \"").append(newClusterName).append("\" -> ")
+                      .append("\"").append(clusterNames.get(bestClusterAIndex)).append("\";\n");
+            dotContent.append("  \"").append(newClusterName).append("\" -> ")
+                      .append("\"").append(clusterNames.get(bestClusterBIndex)).append("\";\n");
+
+            // Mettre à jour les clusters et leurs noms
+            bestClusterA.addAll(bestClusterB);
+            clusters.remove(bestClusterBIndex);
+            clusterNames.set(bestClusterAIndex, newClusterName);
+            clusterNames.remove(bestClusterBIndex);
+
+            clusterIndex++;
+        }
+
+        dotContent.append("}\n");
+
+        // Sauvegarder le fichier .dot
+        String dotFilePath = "Results/hierarchical_clustering_graph_spoon.dot";
+        writeDotFile(dotFilePath, dotContent.toString());
+
+        // Générer le fichier PNG du graphe de clustering hiérarchique
+        generatePng(dotFilePath, "Results/hierarchical_clustering_graph_spoon.png");
+    }
+
+    private void writeDotFile(String filePath, String content) {
+        File resultsDir = new File("Results");
+        resultsDir.mkdir();
+
+        try {
+            Files.write(Paths.get(filePath), content.getBytes());
+            System.out.println("Fichier .dot créé : " + filePath);
+        } catch (IOException e) {
+            System.err.println("Erreur lors de l'écriture du fichier .dot : " + e.getMessage());
+        }
+    }
+
+    private void generatePng(String dotFilePath, String pngFilePath) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("dot", "-Tpng", dotFilePath, "-o", pngFilePath);
+            Process process = pb.start();
+            process.waitFor();
+            System.out.println("Fichier PNG créé : " + pngFilePath);
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Erreur lors de la génération du fichier PNG : " + e.getMessage());
+        }
     }
 
     private List<Set<String>> initializeClusters() {
@@ -316,6 +403,9 @@ public class SpoonCouplageAnalyse {
         }
         return clusters;
     }
+
+
+    
 
     private void performClustering(List<Set<String>> clusters) {
         while (clusters.size() > MAX_MODULES) {

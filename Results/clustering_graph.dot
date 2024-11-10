@@ -1,0 +1,11 @@
+graph Clustering {
+  "Tobacco" -- "Module 1";
+  "TaxHolidayVisitor" -- "Module 1";
+  "Visitor" -- "Module 1";
+  "Test" -- "Module 1";
+  "Visitable" -- "Module 1";
+  "Necessity" -- "Module 1";
+  "Liquor" -- "Module 1";
+  "TaxVisitor" -- "Module 1";
+  "Product" -- "Module 2";
+}

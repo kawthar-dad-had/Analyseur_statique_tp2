@@ -358,7 +358,7 @@ public class CouplageAnalyse {
     }
     
     public void hierarchicalClustering() {
-        // Paramètres d'entrée (à définir par l'utilisateur ou à initialiser)
+        // Paramètres d'entrée
         Scanner scanner = new Scanner(System.in);
         System.out.print("Veuillez entrer le nombre maximal de modules (MAX_MODULES) : ");
         MAX_MODULES = scanner.nextInt();
@@ -367,50 +367,114 @@ public class CouplageAnalyse {
 
         // Liste pour stocker les clusters
         List<Set<String>> clusters = new ArrayList<>();
-        
+        List<String> clusterNames = new ArrayList<>(); // Pour stocker les noms des clusters en fonction des classes regroupées
+
         // Initialiser chaque classe comme un cluster
         for (String className : allClasses) {
             Set<String> cluster = new HashSet<>();
             cluster.add(className);
             clusters.add(cluster);
+            clusterNames.add(className); // Initialement, chaque cluster porte le nom de la classe unique
         }
 
-        while (clusters.size() > MAX_MODULES) {
-            // Trouver la paire de clusters les plus couplés
-            double maxCoupling = -1;
-            Set<String> bestClusterA = null;
-            Set<String> bestClusterB = null;
+        StringBuilder dotContent = new StringBuilder("digraph HierarchicalClustering {\n");
 
+        // Construction du graphe hiérarchique en ajoutant des clusters
+        while (clusters.size() > MAX_MODULES) {
+            double maxCoupling = -1;
+            int bestClusterAIndex = -1;
+            int bestClusterBIndex = -1;
+
+            // Trouver les deux clusters les plus couplés
             for (int i = 0; i < clusters.size(); i++) {
                 for (int j = i + 1; j < clusters.size(); j++) {
-                    Set<String> clusterA = clusters.get(i);
-                    Set<String> clusterB = clusters.get(j);
-
-                    // Calculer la métrique de couplage moyenne entre les deux clusters
-                    double couplingMetric = calculateAverageCoupling(clusterA, clusterB);
+                    double couplingMetric = calculateAverageCoupling(clusters.get(i), clusters.get(j));
                     if (couplingMetric > maxCoupling) {
                         maxCoupling = couplingMetric;
-                        bestClusterA = clusterA;
-                        bestClusterB = clusterB;
+                        bestClusterAIndex = i;
+                        bestClusterBIndex = j;
                     }
                 }
             }
 
-            // Regrouper les deux meilleurs clusters si le couplage est supérieur à CP
-            if (maxCoupling > CP) {
-                bestClusterA.addAll(bestClusterB);
-                clusters.remove(bestClusterB);
-            } else {
-                break; // Si aucun couplage n'est supérieur à CP, on arrête le regroupement
+            if (maxCoupling < CP) {
+                break;
             }
+
+            // Fusion des clusters
+            Set<String> bestClusterA = clusters.get(bestClusterAIndex);
+            Set<String> bestClusterB = clusters.get(bestClusterBIndex);
+            
+            // Nouveau nom pour le cluster fusionné, basé sur les noms des classes dans les deux clusters
+            String newClusterName = "{" + clusterNames.get(bestClusterAIndex) + ", " + clusterNames.get(bestClusterBIndex) + "}";
+            
+            // Ajouter la fusion au graphe
+            dotContent.append("  ").append("\"").append(newClusterName).append("\" -> ")
+                      .append("\"").append(clusterNames.get(bestClusterAIndex)).append("\";\n");
+            dotContent.append("  ").append("\"").append(newClusterName).append("\" -> ")
+                      .append("\"").append(clusterNames.get(bestClusterBIndex)).append("\";\n");
+
+            // Fusionner les deux clusters
+            bestClusterA.addAll(bestClusterB);
+            clusters.remove(bestClusterBIndex);
+            clusterNames.set(bestClusterAIndex, newClusterName);
+            clusterNames.remove(bestClusterBIndex);
         }
 
-        // Affichage des modules finaux
-        System.out.println("\n--- Modules regroupés ---");
-        for (Set<String> module : clusters) {
-            System.out.println("Module : " + module);
+        dotContent.append("}\n");
+
+        // Sauvegarder le fichier .dot
+        String dotFilePath = "Results/hierarchical_clustering_graph.dot";
+        try {
+            Files.write(Paths.get(dotFilePath), dotContent.toString().getBytes());
+            System.out.println("Fichier .dot de clustering hiérarchique créé : " + dotFilePath);
+        } catch (IOException e) {
+            System.err.println("Erreur lors de l'écriture du fichier .dot de clustering hiérarchique : " + e.getMessage());
+        }
+
+        // Générer le fichier PNG du graphe de clustering hiérarchique
+        generatePng(dotFilePath, "Results/hierarchical_clustering_graph.png");
+    }
+
+
+
+    private void buildClusteringGraph(List<Set<String>> clusters) {
+        StringBuilder dotContent = new StringBuilder("graph Clustering {\n");
+
+        int moduleNumber = 1;
+        for (Set<String> cluster : clusters) {
+            for (String className : cluster) {
+                dotContent.append("  \"").append(className).append("\" -- \"Module ").append(moduleNumber).append("\";\n");
+            }
+            moduleNumber++;
+        }
+
+        dotContent.append("}\n");
+
+        // Créer le fichier .dot pour le graphe de clustering
+        String dotFilePath = "Results/clustering_graph.dot";
+        try {
+            Files.write(Paths.get(dotFilePath), dotContent.toString().getBytes());
+            System.out.println("Fichier .dot de clustering créé : " + dotFilePath);
+        } catch (IOException e) {
+            System.err.println("Erreur lors de l'écriture du fichier .dot de clustering : " + e.getMessage());
+        }
+
+        // Générer le fichier PNG du graphe de clustering
+        generatePng("Results/clustering_graph.dot", "Results/clustering_graph.png");
+    }
+
+    private void generatePng(String dotFilePath, String pngFilePath) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("dot", "-Tpng", dotFilePath, "-o", pngFilePath);
+            Process process = pb.start();
+            process.waitFor();
+            System.out.println("Fichier PNG de clustering créé : " + pngFilePath);
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Erreur lors de la génération du fichier PNG de clustering : " + e.getMessage());
         }
     }
+
 
     private double calculateAverageCoupling(Set<String> clusterA, Set<String> clusterB) {
         double totalCoupling = 0;

@@ -1,5 +1,22 @@
 graph Couplage {
-  ClassA -- ClassB [label="1 / 4"];
-  ClassA -- ClassC [label="2 / 4"];
-  ClassB -- ClassC [label="1 / 4"];
+  Tobacco -- TaxHolidayVisitor [label="1 / 28"];
+  Tobacco -- Test [label="1 / 28"];
+  Tobacco -- Visitable [label="2 / 28"];
+  Tobacco -- Necessity [label="2 / 28"];
+  Tobacco -- Liquor [label="2 / 28"];
+  Tobacco -- TaxVisitor [label="1 / 28"];
+  TaxHolidayVisitor -- Visitor [label="1 / 28"];
+  TaxHolidayVisitor -- Necessity [label="1 / 28"];
+  TaxHolidayVisitor -- Liquor [label="1 / 28"];
+  TaxHolidayVisitor -- TaxVisitor [label="3 / 28"];
+  Visitor -- TaxVisitor [label="1 / 28"];
+  Test -- Visitable [label="1 / 28"];
+  Test -- Necessity [label="1 / 28"];
+  Test -- Liquor [label="1 / 28"];
+  Visitable -- Necessity [label="2 / 28"];
+  Visitable -- Liquor [label="2 / 28"];
+  Necessity -- Liquor [label="2 / 28"];
+  Necessity -- TaxVisitor [label="1 / 28"];
+  Liquor -- TaxVisitor [label="1 / 28"];
+  Product -- TaxVisitor [label="1 / 28"];
 }

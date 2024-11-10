@@ -1,0 +1,14 @@
+digraph HierarchicalClustering {
+  "{TaxHolidayVisitor, TaxVisitor}" -> "TaxHolidayVisitor";
+  "{TaxHolidayVisitor, TaxVisitor}" -> "TaxVisitor";
+  "{Tobacco, Visitable}" -> "Tobacco";
+  "{Tobacco, Visitable}" -> "Visitable";
+  "{{Tobacco, Visitable}, Necessity}" -> "{Tobacco, Visitable}";
+  "{{Tobacco, Visitable}, Necessity}" -> "Necessity";
+  "{{{Tobacco, Visitable}, Necessity}, Liquor}" -> "{{Tobacco, Visitable}, Necessity}";
+  "{{{Tobacco, Visitable}, Necessity}, Liquor}" -> "Liquor";
+  "{{{{Tobacco, Visitable}, Necessity}, Liquor}, Test}" -> "{{{Tobacco, Visitable}, Necessity}, Liquor}";
+  "{{{{Tobacco, Visitable}, Necessity}, Liquor}, Test}" -> "Test";
+  "{{TaxHolidayVisitor, TaxVisitor}, Visitor}" -> "{TaxHolidayVisitor, TaxVisitor}";
+  "{{TaxHolidayVisitor, TaxVisitor}, Visitor}" -> "Visitor";
+}

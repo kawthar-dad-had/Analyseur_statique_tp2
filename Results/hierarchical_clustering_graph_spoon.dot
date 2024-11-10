@@ -1,0 +1,10 @@
+digraph HierarchicalClustering {
+  rankdir=TB;
+  node [shape=plaintext];
+  "{TaxHolidayVisitor, TaxVisitor}" -> "TaxHolidayVisitor";
+  "{TaxHolidayVisitor, TaxVisitor}" -> "TaxVisitor";
+  "{{TaxHolidayVisitor, TaxVisitor}, Test}" -> "{TaxHolidayVisitor, TaxVisitor}";
+  "{{TaxHolidayVisitor, TaxVisitor}, Test}" -> "Test";
+  "{{{TaxHolidayVisitor, TaxVisitor}, Test}, Product}" -> "{{TaxHolidayVisitor, TaxVisitor}, Test}";
+  "{{{TaxHolidayVisitor, TaxVisitor}, Test}, Product}" -> "Product";
+}
